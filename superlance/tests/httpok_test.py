@@ -67,7 +67,7 @@ class HTTPOkTests(unittest.TestCase):
     def _makeOnePopulated(self, programs, any, response=None, exc=None,
             gcore=None, coredir=None, eager=True, restart_threshold=3,
             restart_timespan=60, ext_service=None, restart_string=None,
-            grace_period=0, grace_count=0):
+            grace_period=0, grace_count=0, dry_run=False):
         if response is None:
             response = DummyResponse()
         rpc = DummyRPCServer()
@@ -83,7 +83,8 @@ class HTTPOkTests(unittest.TestCase):
         prog = self._makeOne(rpc, programs, any, url, timeout, status,
             inbody, email, sendmail, coredir, gcore, eager, retry_time,
             restart_threshold, restart_timespan, ext_service, restart_string,
-            grace_period, grace_count)
+            grace_period, grace_count, dry_run)
+        prog.dry_run = dry_run
         prog.stdin = StringIO()
         prog.stdout = StringIO()
         prog.stderr = StringIO()
@@ -189,6 +190,20 @@ class HTTPOkTests(unittest.TestCase):
         self.assertEqual(lines[2], 'foo is in RUNNING state, restarting')
         self.assertEqual(lines[3], 'Exception during GET before restarting foo: foo')
         self.assertEqual(lines[4], 'foo restarted')
+
+    def test_dry_run(self):
+        programs = ['foo']
+        any = None
+        prog = self._makeOnePopulated(programs, any, exc=True, dry_run=True)
+        prog.stdin.write('eventname:TICK len:0\n')
+        prog.stdin.seek(0)
+        prog.runforever(test=True)
+        lines = prog.stderr.getvalue().split('\n')[8:]
+        self.assertEqual(lines[0],
+                         "Trying to restart affected processes ['foo']"
+                         )
+        self.assertEqual(lines[1], 'foo restart is approved')
+        self.assertEqual(lines[2], 'dry-run mode active, faking foo restart')
 
     def test_restart_string(self):
         programs = ['foo']
