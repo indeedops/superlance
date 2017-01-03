@@ -256,7 +256,7 @@ class HTTPOk:
                 specs = self.listProcesses(ProcessStates.RUNNING)
             except Exception as e:
                 self.log.logger.warning('Exception occurred while trying to get '
-                    'the list of processes: ', e)
+                    'the list of processes: %s', e)
                 continue
             if self.eager or len(specs) > 0:
 
@@ -446,11 +446,19 @@ class HTTPOk:
                 except xmlrpclib.Fault as e:
                     write('Failed to stop process %s: %s' % (
                         namespec, e))
+                except Exception as e:
+                    self.log.logger.warning('Exception occurred while trying to '
+                        'stop process %s due to %s', namespec, e)
+                    return
                 try:
                     self.rpc.supervisor.startProcess(namespec)
                 except xmlrpclib.Fault as e:
                     write('Failed to start process %s: %s' % (
                         namespec, e))
+                except Exception as e:
+                    self.log.logger.warning('Exception occurred while trying to '
+                        'start process %s due to %s', namespec, e)
+                    return
                 else:
                     write('%s restarted' % namespec)
 

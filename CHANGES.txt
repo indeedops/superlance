@@ -2,7 +2,7 @@
 -------------------
 
 - Added dry-run option to prevent httpok from actually restarting programs
-- 
+- More exception handlers for RPC communication failures with supervisord 
 
 1.0.10 (2016-11-23)
 -------------------
