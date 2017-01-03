@@ -25,7 +25,7 @@
 # events=TICK_60
 
 doc = """\
-httpok.py [-p processname] [-a] [-g] [-t timeout] [-c status_code] [-b inbody]
+httpok.py [-p processname] [-a] [-g] [-D] [-t timeout] [-c status_code] [-b inbody]
     [-B restart_string] [-m mail_address] [-s sendmail] [-r restart_threshold]
     [-n restart_timespan] [-x external_script] [-G grace_period]
     [-o grace_count] URL
@@ -116,6 +116,10 @@ Options:
       since the last time program was (re)started and is checked before
       program restart counter (-n option). Default is 0.
 
+-D -- dry run mode which will prevent httpok from restarting the monitored
+      program. Useful for testing purposes. In this mode, httpok will log
+      all actions as usual, however httpok restart attempts won't take effect.
+
 URL -- The URL to which to issue a GET request.
 
 The -p option may be specified more than once, allowing for
@@ -159,7 +163,7 @@ class HTTPOk:
                  email, sendmail, coredir, gcore, eager, retry_time,
                  restart_threshold=0, restart_timespan=0, ext_service=None,
                  restart_string=None, grace_period=None, grace_count=0,
-                 capture_mode_stream=None):
+                 capture_mode_stream=None, dry_run=False):
         self.rpc = rpc
         self.programs = programs
         self.any = any
@@ -184,6 +188,7 @@ class HTTPOk:
         self.ext_service = ext_service
         self.grace_period = grace_period * 60 if grace_period else 0
         self.grace_count = grace_count
+        self.dry_run = dry_run
         self.params = {
             'source': 'httpok',
             'response_status': self.status,
@@ -396,6 +401,9 @@ class HTTPOk:
 
     def restart(self, spec, write):
         namespec = make_namespec(spec['group'], spec['name'])
+        if self.dry_run:
+            write('dry-run mode active, faking %s restart' % namespec)
+            return
         if spec['state'] is ProcessStates.RUNNING:
             if self.coredir and self.gcore:
                 corename = os.path.join(self.coredir, namespec)
@@ -541,7 +549,7 @@ class HTTPOk:
 
 def main(argv=sys.argv):
     import getopt
-    short_args="hp:at:c:b:B:s:m:g:d:eEr:n:x:G:C:o:"
+    short_args="hp:at:c:b:B:s:m:g:d:eEr:n:x:G:C:o:D"
     long_args=[
         "help",
         "program=",
@@ -562,6 +570,7 @@ def main(argv=sys.argv):
         "grace-period=",
         "capture-mode=",
         "grace-count=",
+        "dry-run",
         ]
     arguments = argv[1:]
     try:
@@ -592,6 +601,7 @@ def main(argv=sys.argv):
     grace_period = 0
     capture_mode_stream = None
     grace_count = 0
+    dry_run = False
 
     for option, value in opts:
 
@@ -668,6 +678,9 @@ def main(argv=sys.argv):
         if option in ('-o', '--grace-count'):
             grace_count = int(value)
 
+        if option in ('-D', '--dry-run'):
+            dry_run = True
+
     url = arguments[-1]
 
     try:
@@ -693,7 +706,7 @@ def main(argv=sys.argv):
                   sendmail, coredir, gcore, eager, retry_time,
                   restart_threshold, restart_timespan, ext_service,
                   restart_string, grace_period, grace_count,
-                  capture_mode_stream)
+                  capture_mode_stream, dry_run)
     prog.runforever()
 
 if __name__ == '__main__':
