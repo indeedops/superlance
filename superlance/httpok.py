@@ -257,6 +257,14 @@ class HTTPOk:
             except Exception as e:
                 self.log.logger.warning('Exception occurred while trying to get '
                     'the list of processes: %s', e)
+                traceback.print_exc()
+                try:
+                    self.log.logger.warning('Trying to re-establish pipe...')
+                    self.rpc = childutils.getRPCInterface(os.environ)
+                    childutils.listener.ok(self.stdout)
+                except KeyError as e:
+                    self.log.logger.warning('Could not re-establish pipe...')
+                    break
                 continue
             if self.eager or len(specs) > 0:
 
