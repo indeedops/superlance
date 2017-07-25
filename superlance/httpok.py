@@ -137,6 +137,7 @@ import os
 import socket
 import sys
 import time
+import traceback
 import urllib
 
 from collections import defaultdict
@@ -257,6 +258,10 @@ class HTTPOk:
             except Exception as e:
                 self.log.logger.warning('Exception occurred while trying to get '
                     'the list of processes: %s', e)
+                traceback.print_exc()
+                self.log.logger.warning('Trying to re-establish pipe...')
+                self.rpc = childutils.getRPCInterface(os.environ)
+                childutils.listener.ok(self.stdout)
                 continue
             if self.eager or len(specs) > 0:
 
